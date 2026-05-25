@@ -5,6 +5,7 @@ from pydantic import BaseModel
 from typing import List, Optional
 from dotenv import load_dotenv
 import json
+import os
 from sqlalchemy.orm import Session
 
 from utils.pdf_processor import extract_text_from_pdf, create_text_chunks
@@ -34,6 +35,25 @@ app.add_middleware(
 
 # Global in-memory storage for document chunks
 document_chunks = []
+STORAGE_PATH = "storage/document_state.json"
+
+def save_state():
+    global document_chunks
+    with open(STORAGE_PATH, "w", encoding="utf-8") as f:
+        json.dump(document_chunks, f, ensure_ascii=False)
+
+def load_state():
+    global document_chunks
+    if os.path.exists(STORAGE_PATH):
+        try:
+            with open(STORAGE_PATH, "r", encoding="utf-8") as f:
+                document_chunks = json.load(f)
+                print(f"State betöltve: {len(document_chunks)} chunks")
+        except Exception as e:
+            print(f"Hiba az állapotfájl betöltésekor: {e}")
+
+# Load state on startup
+load_state()
 
 class ChatRequest(BaseModel):
     prompt: str
@@ -54,6 +74,14 @@ class QuizResultSave(BaseModel):
     score: int
     total_questions: int
 
+@app.get("/status")
+async def get_status():
+    global document_chunks
+    return {
+        "is_active": len(document_chunks) > 0,
+        "chunks_count": len(document_chunks)
+    }
+
 @app.post("/upload")
 async def upload_documents(files: List[UploadFile] = File(...)):
     global document_chunks
@@ -68,6 +96,8 @@ async def upload_documents(files: List[UploadFile] = File(...)):
             
         document_chunks = create_text_chunks(extracted_text)
         print(f"Chunks létrehozva: {len(document_chunks)} db")
+        
+        save_state()
         
         return {"message": "Sikeres feldolgozás", "chunks_count": len(document_chunks)}
     except Exception as e:
@@ -164,8 +194,6 @@ async def chat_with_document(request: ChatRequest):
     def event_generator():
         try:
             for text_chunk in stream_chat_response(request.prompt, document_chunks):
-                # We yield SSE compatible lines
-                # Removing newlines from chunk to preserve SSE format, or JSON encode it
                 data = json.dumps({"text": text_chunk})
                 yield f"data: {data}\n\n"
         except Exception as e:

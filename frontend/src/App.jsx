@@ -24,6 +24,22 @@ function App() {
   const messagesEndRef = useRef(null);
 
   useEffect(() => {
+    const checkStatus = async () => {
+      try {
+        const res = await axios.get(`${BACKEND_URL}/status`);
+        if (res.data.is_active) {
+          setUploadStatus('success');
+          // If active, try to fetch summary if not already there
+          handleAnalyze();
+        }
+      } catch (error) {
+        console.error("Hiba az állapot ellenőrzésekor", error);
+      }
+    };
+    checkStatus();
+  }, []);
+
+  useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isThinking]);
 

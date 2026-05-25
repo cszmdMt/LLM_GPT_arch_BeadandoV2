@@ -1,0 +1,81 @@
+CSIZISKOLA - PROJEKT VÉDÉS FELKÉSZÍTŐ (GYIK)
+
+Ez a dokumentum összefoglalja a legvalószínűbb kérdéseket és válaszokat a projekt védéséhez, lefedve a technikai és funkcionális részleteket.
+
+---
+
+1. ÁLTALÁNOS KÉRDÉSEK ÉS ARCHITEKTÚRA
+
+K: Mi a projekt fő célja?
+V: Egy olyan intelligens oktatási platform (CsizIskola) létrehozása, amely AI segítségével (RAG technológia) képes bármilyen feltöltött PDF dokumentumot feldolgozni, abból összefoglalót, kvízt, elmetérképet és tanulókártyákat generálni, valamint interaktív módon válaszolni a hallgató kérdéseire.
+
+K: Milyen technológiákat használtál és miért?
+V: 
+- Frontend: React (Vite-tel), mert gyors, komponens-alapú és remek ökoszisztémája van az animációkhoz (Framer Motion).
+- Backend: FastAPI (Python), mert aszinkron, rendkívül gyors és egyszerűen integrálható vele bármilyen AI SDK.
+- AI: Google Gemini 2.5-flash-lite, mert nagy kontextusablakkal rendelkezik, gyors és ingyenes kereteken belül is használható.
+- Adatbázis: SQLite (SQLAlchemy-vel), a teszteredmények tartós tárolásához.
+
+K: Mi az a RAG (Retrieval-Augmented Generation) és hogyan jelenik meg nálad?
+V: A RAG lényege, hogy az AI nem csak az előtanított tudására támaszkodik, hanem egy külső forrásból (itt a feltöltött PDF) kapott kontextus alapján válaszol. A projektben a PDF szövegét részekre (chunks) bontjuk, és minden kérésnél (chat, kvíz) ezt a kontextust küldjük el a modellnek.
+
+---
+
+2. BACKEND ÉS AI LOGIKA
+
+K: Hogyan dolgozod fel a PDF fájlokat?
+V: A `PyMuPDF` (fitz) könyvtárat használom a nyers szöveg kinyerésére. Mivel a dokumentumok hosszúak lehetnek, a `LangChain RecursiveCharacterTextSplitter`-ét használom, hogy kezelhető méretű darabokra (kb. 10.000 karakter) bontsam a szöveget, átfedésekkel.
+
+K: Hogyan biztosítod, hogy az AI ne találjon ki (hallucináljon) dolgokat a chatben?
+V: A `system_instruction` (rendszerutasítás) segítségével szigorúan kikötöm a modellnek, hogy kizárólag a megadott dokumentum alapján válaszolhat. Ha valami nincs benne, azt meg kell mondania.
+
+K: Hogyan generálsz strukturált adatokat, például a kvízhez?
+V: A Gemini API "JSON Mode"-ját használom. A promptban definiálom a pontos sémát (question, options, correct_answer), a modell pedig érvényes JSON listát ad vissza, amit a Python `json` moduljával dolgozok fel.
+
+K: Miért a gemini-2.5-flash-lite modellt választottad a végén?
+V: A fejlesztés során kiderült, hogy a sima Flash modell kvótái hamar elfogytak. A Lite verzió stabilabbnak bizonyult a tesztek során, miközben az oktatási feladatokhoz szükséges logikai szintet továbbra is hozza.
+
+---
+
+3. FRONTEND ÉS FELHASZNÁLÓI ÉLMÉNY
+
+K: Hogyan oldottad meg a navigációt az oldalak között?
+V: A `react-router-dom` könyvtárat használtam. Ez lehetővé teszi a SPA (Single Page Application) működést, ahol az oldal nem töltődik újra, csak a komponensek cserélődnek le a kijelzőn.
+
+K: Hogyan valósítottad meg a Gondolattérképet?
+V: A backend a dokumentum alapján egy `Mermaid.js` szintaxisú szöveget generál. A frontend ezt a `mermaid` könyvtárral rendereli le, a `react-zoom-pan-pinch` segítségével pedig interaktívvá (nagyíthatóvá és mozgathatóvá) tettem.
+
+K: Milyen UI/UX megoldásokat alkalmaztál a modern megjelenéshez?
+V: 
+- Glassmorphism: Áttetsző, elmosódott hátterű panelek (glass-panel CSS class).
+- Futurisztikus téma: Sötét háttér, neon kék/lila színekkel és glow effektekkel.
+- Interakciók: Framer Motion animációk a kártyák átfordulásánál és a válaszok megjelenésénél.
+
+K: Miért volt szükség a Markdown renderelésre?
+V: Az AI válaszai gyakran tartalmaznak címsorokat, listákat vagy félkövér szövegeket. A `react-markdown` és a Tailwind Typography plugin (`prose` osztályok) segítségével ezek nem nyers kódként, hanem esztétikusan formázott szövegként jelennek meg a felhasználónak.
+
+---
+
+4. ADATBÁZIS ÉS ADATKEZELÉS
+
+K: Mit tárolsz az adatbázisban és miért?
+V: A kvízeredményeket tárolom (témakör, nehézség, pontszám, dátum). Ez motiválja a felhasználót a fejlődés követésével. Magát a PDF szövegét biztonsági és egyszerűségi okokból csak a szerver memóriájában tárolom a munkamenet idejére.
+
+K: Hogyan kommunikál a frontend és a backend az eredmények mentésekor?
+V: A kvíz befejezésekor a frontend egy aszinkron AXIOS POST kérést küld a `/quiz-results` végpontra, átadva az elért eredményt. A backend az SQLAlchemy ORM segítségével menti ezt az SQLite fájlba.
+
+---
+
+5. HIBAELHÁRÍTÁS ÉS TESZTELÉS
+
+K: Milyen gyakori hibákkal találkoztál a fejlesztés során és hogyan javítottad őket?
+V: 
+- Port ütközés (8000): A Windows néha foglaltnak érzékelte a portot, ilyenkor manuális taskkill-re vagy port váltásra volt szükség.
+- API Quota (429-es hiba): A modellváltás (Lite-ra) és a hívások optimalizálása oldotta meg.
+- Mermaid Syntax hiba: Az AI néha speciális karaktereket tett a grafikonba. Szigorúbb rendszerutasítással korlátoztam a generált kimenetet.
+
+K: Hogyan tesztelted a rendszert?
+V: Készítettem egy automatizált teszt scriptet, amely sorban meghívta az összes backend végpontot (feltöltés, elemzés, kvíz, módszerek) és ellenőrizte a válaszok helyességét. A frontenden manuális UI/UX teszteket végeztem különböző képernyőméretekre.
+
+---
+Vége. Sok sikert a védéshez!

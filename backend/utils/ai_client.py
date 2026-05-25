@@ -23,7 +23,7 @@ async def generate_summary_async(context_chunks):
 
     try:
         response = client.models.generate_content(
-            model="gemini-2.5-flash-lite",
+            model="gemini-flash-latest",
             contents=full_prompt,
             config=types.GenerateContentConfig(
                 system_instruction=system_instruction,
@@ -53,7 +53,7 @@ async def generate_quiz_async(context_chunks, count=5, difficulty=2):
 
     try:
         response = client.models.generate_content(
-            model="gemini-2.5-flash-lite",
+            model="gemini-flash-latest",
             contents=prompt,
             config=types.GenerateContentConfig(
                 system_instruction=system_instruction,
@@ -85,7 +85,7 @@ async def analyze_quiz_errors_async(wrong_answers):
 
     try:
         response = client.models.generate_content(
-            model="gemini-2.5-flash-lite",
+            model="gemini-flash-latest",
             contents=prompt,
             config=types.GenerateContentConfig(
                 system_instruction=system_instruction,
@@ -124,7 +124,7 @@ async def generate_mindmap_async(context_chunks):
 
     try:
         response = client.models.generate_content(
-            model="gemini-2.5-flash-lite",
+            model="gemini-flash-latest",
             contents=prompt,
             config=types.GenerateContentConfig(
                 system_instruction=system_instruction,
@@ -154,7 +154,7 @@ async def socratic_hint_async(context_chunks, user_question):
 
     try:
         response = client.models.generate_content(
-            model="gemini-2.5-flash-lite",
+            model="gemini-flash-latest",
             contents=prompt,
             config=types.GenerateContentConfig(
                 system_instruction=system_instruction,
@@ -180,7 +180,7 @@ async def generate_flashcards_async(context_chunks):
 
     try:
         response = client.models.generate_content(
-            model="gemini-2.5-flash-lite",
+            model="gemini-flash-latest",
             contents=prompt,
             config=types.GenerateContentConfig(
                 system_instruction=system_instruction,
@@ -208,7 +208,7 @@ def stream_chat_response(prompt, context_chunks):
 
     try:
         response_stream = client.models.generate_content_stream(
-            model="gemini-2.5-flash-lite",
+            model="gemini-flash-latest",
             contents=full_prompt,
             config=types.GenerateContentConfig(
                 system_instruction=system_instruction,
